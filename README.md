@@ -1,0 +1,1 @@
+# cardd-damage-detector
