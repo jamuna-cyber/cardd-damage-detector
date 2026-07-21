@@ -1,14 +1,27 @@
+import os
+import urllib.request
+
 import pandas as pd
 import streamlit as st
 from PIL import Image
-from ultralytics import YOLO
+from ultralytics import RTDETR
 
 st.set_page_config(page_title="CarDD Vehicle Damage Detector",
                    page_icon="🚗", layout="wide")
 
+# ---------------------------------------------------------------------------
+# The trained RT-DETR weights (66 MB) are too big for GitHub's normal file
+# storage, so they live in a GitHub *Release* and are downloaded on first run.
+# ---------------------------------------------------------------------------
+MODEL_URL = "https://github.com/jamuna-cyber/cardd-damage-detector/releases/download/ModelWeights/best.pt"
+MODEL_PATH = "best.pt"
+
 @st.cache_resource
 def load_model():
-    return YOLO("best.pt")   # trained YOLOv8s weights, in the same repo
+    if not os.path.exists(MODEL_PATH):
+        with st.spinner("Downloading model (first run only)…"):
+            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+    return RTDETR(MODEL_PATH)   # trained RT-DETR weights
 
 model = load_model()
 NAMES = model.names
@@ -17,7 +30,7 @@ IMGSZ = 640
 SEVERITY_W = {"dent": 2, "scratch": 1, "crack": 3,
               "glass shatter": 4, "lamp broken": 3, "tire flat": 3}
 
-st.title("🚗 CarDD Vehicle Damage Detector — YOLOv8s")
+st.title("🚗 CarDD Vehicle Damage Detector — RT-DETR")
 st.caption("Upload a photo of vehicle damage. Detects dents, scratches, cracks, "
            "glass shatter, broken lamps and flat tires, and estimates repair "
            "severity. MSc project demo — University of Greenwich.")
@@ -65,3 +78,5 @@ else:
                      f"before driving. ({n} region(s) found)")
         st.dataframe(pd.DataFrame(rows).sort_values("Confidence",
                      ascending=False), hide_index=True)
+  
+     
